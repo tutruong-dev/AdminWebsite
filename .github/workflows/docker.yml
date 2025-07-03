@@ -1,0 +1,43 @@
+name: Build & Push Docker
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Grant execute permission for Maven wrapper
+      run: chmod +x ./mvnw
+
+    - name: Build with Maven (Skip all tests)
+      run: ./mvnw clean install -Dmaven.test.skip=true
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      run: |
+        IMAGE=ghcr.io/${{ github.actor }}/admissions-website:latest
+        docker build -t $IMAGE .
+        docker push $IMAGE
+    # - name: Build and push Docker image
+    #   run: |
+    #     IMAGE=ghcr.io/${{ github.repository }}:latest
+    #     docker build -t $IMAGE .
+    #     docker push $IMAGE
